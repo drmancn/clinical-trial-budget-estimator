@@ -169,7 +169,9 @@ body {
   box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
 }
 .cost-table td input.qty-input { width: 80px; }
-.cost-table td input.price-input { width: 120px; }
+.cost-table td input.price-input { width: 110px; }
+.cost-table td input.contract-input { width: 110px; background: #fffbeb; border-color: #fcd34d; }
+.cost-table td input.contract-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 2px rgba(245,158,11,0.15); }
 .cost-table .item-name { font-weight: 500; color: var(--text); }
 .cost-table .item-unit { font-size: 11px; color: var(--text-secondary); }
 .cost-table .item-subtotal {
@@ -264,6 +266,9 @@ input[type="number"] { -moz-appearance: textfield; }
   <div>
     <h1>临床研究费用预估工具</h1>
     <div class="subtitle">Clinical Trial Budget Estimator — 申办方预算分析</div>
+    <div style="font-size:12px;opacity:0.7;margin-top:6px;display:flex;align-items:center;gap:6px;">
+      <span>📋 合同金额列：填写合同金额则直接采用，留空按单价×数量自动估算</span>
+    </div>
   </div>
   <div class="header-actions">
     <button class="btn btn-accent" onclick="fillMarketRates()" title="填入国内市场参考均价">填入市场参考价</button>
@@ -332,7 +337,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="cro-items"></tbody>
         </table>
@@ -348,7 +353,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="smo-items"></tbody>
         </table>
@@ -364,7 +369,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="hospital-items"></tbody>
         </table>
@@ -380,7 +385,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="investigator-items"></tbody>
         </table>
@@ -396,7 +401,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="patient-items"></tbody>
         </table>
@@ -412,7 +417,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="third-items"></tbody>
         </table>
@@ -428,7 +433,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="scale-items"></tbody>
         </table>
@@ -444,7 +449,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="insurance-items"></tbody>
         </table>
@@ -460,7 +465,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="equipment-items"></tbody>
         </table>
@@ -476,7 +481,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="card-body show">
         <table class="cost-table">
           <thead>
-            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">合同金额（元）</th><th class="right">金额（元）</th></tr>
           </thead>
           <tbody id="drug-items"></tbody>
         </table>
@@ -685,13 +690,17 @@ function init() {
             <input type="number" class="price-input" id="price-${item.id}" value="" 
               onchange="recalculate()" placeholder="单价" min="0" step="0.01">
           </td>
-          <td class="item-subtotal" id="sub-${item.id}">¥0</td>
+          <td style="text-align:right;">
+            <input type="number" class="contract-input" id="contract-${item.id}" value="" 
+              onchange="recalculate()" placeholder="合同金额" min="0" step="0.01">
+          </td>
+          <td class="item-subtotal" id="sub-${item.id}" data-contract="false">¥0</td>
         </tr>`;
     }).join('');
 
     // Section total row
     const totalRow = document.createElement('tr');
-    totalRow.innerHTML = `<td class="section-total" colspan="4">${cat.name} 小计</td><td class="section-total" id="${cat.id}-total">¥0</td>`;
+    totalRow.innerHTML = `<td class="section-total" colspan="5">${cat.name} 小计</td><td class="section-total" id="${cat.id}-total">¥0</td>`;
     tbody.parentElement.appendChild(totalRow);
   });
 
@@ -780,15 +789,30 @@ function recalculate() {
     cat.items.forEach(item => {
       const qty = parseFloat(document.getElementById('qty-' + item.id).value) || 0;
       const price = parseFloat(document.getElementById('price-' + item.id).value) || 0;
+      const contract = parseFloat(document.getElementById('contract-' + item.id).value) || 0;
       let subtotal;
+      let isContract = false;
       if (item.isPct) {
-        // Percentage items: price is percentage, subtotal = 0 for now (calculated later)
-        subtotal = 0;
+        // Percentage items: if contract filled, use it; otherwise calculate later
+        if (contract > 0) { subtotal = contract; isContract = true; }
+        else { subtotal = 0; }
+      } else if (contract > 0) {
+        subtotal = contract;
+        isContract = true;
       } else {
         subtotal = qty * price;
       }
       catTotal += subtotal;
-      document.getElementById('sub-' + item.id).textContent = '¥' + formatMoney(subtotal);
+      const subEl = document.getElementById('sub-' + item.id);
+      if (isContract) {
+        subEl.textContent = '¥' + formatMoney(subtotal) + ' 📋';
+        subEl.style.color = '#d97706';
+        subEl.dataset.contract = 'true';
+      } else {
+        subEl.textContent = '¥' + formatMoney(subtotal);
+        subEl.style.color = '';
+        subEl.dataset.contract = 'false';
+      }
       state[item.id].subtotal = subtotal;
     });
     categoryTotals[cat.id] = catTotal;
@@ -798,21 +822,28 @@ function recalculate() {
   });
 
   // Handle hospital institution fee (percentage of hospital subtotal excluding itself)
+  // Only auto-calculate percentage if no contract amount filled for institution-fee
   const hospitalDef = categoryDefs.find(c => c.id === 'hospital');
   const instFeeItem = hospitalDef.items.find(i => i.id === 'institution-fee');
+  const instFeeContract = parseFloat(document.getElementById('contract-institution-fee').value) || 0;
   const instFeePct = parseFloat(document.getElementById('price-' + instFeeItem.id).value) || 0;
-  let hospitalSubExclInst = 0;
-  hospitalDef.items.forEach(item => {
-    if (item.id !== 'institution-fee') {
-      hospitalSubExclInst += (state[item.id].subtotal || 0);
-    }
-  });
-  const instFeeAmount = hospitalSubExclInst * instFeePct / 100;
-  state['institution-fee'].subtotal = instFeeAmount;
-  document.getElementById('sub-institution-fee').textContent = '¥' + formatMoney(instFeeAmount);
+  let instFeeAmount;
+  if (instFeeContract > 0) {
+    instFeeAmount = instFeeContract; // Already set in loop, just confirm
+  } else {
+    let hospitalSubExclInst = 0;
+    hospitalDef.items.forEach(item => {
+      if (item.id !== 'institution-fee') {
+        hospitalSubExclInst += (state[item.id].subtotal || 0);
+      }
+    });
+    instFeeAmount = hospitalSubExclInst * instFeePct / 100;
+    state['institution-fee'].subtotal = instFeeAmount;
+    document.getElementById('sub-institution-fee').textContent = '¥' + formatMoney(instFeeAmount);
+  }
 
   // Recalculate hospital total with institution fee
-  categoryTotals['hospital'] = hospitalSubExclInst + instFeeAmount;
+  categoryTotals['hospital'] = hospitalDef.items.reduce((sum, item) => sum + (state[item.id].subtotal || 0), 0);
   document.getElementById('hospital-total').textContent = '¥' + formatMoney(categoryTotals['hospital']);
   document.getElementById('hospital-total-header').textContent = '¥' + formatMoney(categoryTotals['hospital']);
 
@@ -996,6 +1027,7 @@ function resetAll() {
     cat.items.forEach(item => {
       document.getElementById('price-' + item.id).value = '';
       document.getElementById('qty-' + item.id).value = getQtyHint(item.qty);
+      document.getElementById('contract-' + item.id).value = '';
       state[item.id] = { price: '', qtyOverride: '' };
     });
   });
