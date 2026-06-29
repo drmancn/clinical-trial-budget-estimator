@@ -191,6 +191,10 @@ body {
 .cat-investigator { background: #d1fae5; color: #059669; }
 .cat-patient { background: #fce7f3; color: #db2777; }
 .cat-third { background: #cffafe; color: #0891b2; }
+.cat-scale { background: #fff7ed; color: #ea580c; }
+.cat-insurance { background: #ffe4e6; color: #e11d48; }
+.cat-equipment { background: #eef2ff; color: #4f46e5; }
+.cat-drug { background: #f0fdfa; color: #0d9488; }
 .summary-card .summary-row {
   display: flex;
   justify-content: space-between;
@@ -415,6 +419,70 @@ input[type="number"] { -moz-appearance: textfield; }
       </div>
     </div>
 
+    <!-- Scale/Rating Scale -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-scale">表</span>量表费用</span>
+        <span><span class="category-subtotal" id="scale-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="scale-items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Insurance -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-insurance">保</span>保险费用</span>
+        <span><span class="category-subtotal" id="insurance-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="insurance-items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Equipment & Consumables -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-equipment">设</span>设备与耗材</span>
+        <span><span class="category-subtotal" id="equipment-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="equipment-items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Drug -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-drug">药</span>药品费用</span>
+        <span><span class="category-subtotal" id="drug-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="drug-items"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Other fees -->
     <div class="card">
       <div class="card-header expanded" onclick="toggleSection(this)">
@@ -530,7 +598,6 @@ const categoryDefs = [
       { id: 'blood', name: '采血补贴', unit: '元/次', qty: 'patients_visits', defaultPrice: 200 },
       { id: 'work-loss', name: '误工补贴', unit: '元/次', qty: 'patients_visits', defaultPrice: 300 },
       { id: 'hotel', name: '住宿补贴', unit: '元/晚', qty: 'patients_visits', defaultPrice: 150 },
-      { id: 'insurance-p', name: '受试者保险', unit: '元/例', qty: 'patients', defaultPrice: 200 },
     ]
   },
   {
@@ -540,10 +607,50 @@ const categoryDefs = [
       { id: 'imaging', name: '独立影像评估费', unit: '元/例', qty: 'patients', defaultPrice: 2000 },
       { id: 'logistics', name: '药品/样本冷链运输', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 2000 },
       { id: 'warehouse', name: '中心药库管理费', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 4000 },
-      { id: 'trial-insurance', name: '临床试验责任保险', unit: '元/项', qty: 'fixed', defaultPrice: 200000 },
       { id: 'ip-protection', name: '知识产权/专利费用', unit: '元/项', qty: 'fixed', defaultPrice: 50000 },
       { id: 'translation', name: '翻译费（方案/ICF/CRF等）', unit: '元/项', qty: 'fixed', defaultPrice: 80000 },
       { id: 'ivrs', name: 'IWRS/IVRS 系统费', unit: '元/月', qty: 'months', defaultPrice: 10000 },
+    ]
+  },
+  {
+    id: 'scale', name: '量表费用', color: '#f97316',
+    items: [
+      { id: 'scale-license', name: '量表版权/授权费', unit: '元/量表', qty: 'fixed', defaultPrice: 80000 },
+      { id: 'scale-translate', name: '量表翻译与文化验证费', unit: '元/量表', qty: 'fixed', defaultPrice: 60000 },
+      { id: 'scale-scoring', name: '中心化评分服务费', unit: '元/例', qty: 'patients', defaultPrice: 500 },
+      { id: 'ecoa', name: 'eCOA/ePRO 系统费', unit: '元/月', qty: 'months', defaultPrice: 20000 },
+      { id: 'scale-training', name: '量表培训费（评分员培训）', unit: '元/次', qty: 'fixed', defaultPrice: 30000 },
+    ]
+  },
+  {
+    id: 'insurance', name: '保险费用', color: '#e11d48',
+    items: [
+      { id: 'trial-insurance', name: '临床试验责任保险', unit: '元/项', qty: 'fixed', defaultPrice: 200000 },
+      { id: 'subject-insurance', name: '受试者人身保险', unit: '元/例', qty: 'patients', defaultPrice: 200 },
+      { id: 'sae-reserve', name: 'SAE 赔偿准备金', unit: '元/例', qty: 'patients', defaultPrice: 500 },
+      { id: 'medical-liability', name: '医疗机构医疗责任险', unit: '元/中心', qty: 'centers', defaultPrice: 3000 },
+    ]
+  },
+  {
+    id: 'equipment', name: '设备与耗材', color: '#6366f1',
+    items: [
+      { id: 'equip-rent', name: '设备采购/租赁费（心电/血压/离心机等）', unit: '元/中心', qty: 'centers', defaultPrice: 30000 },
+      { id: 'sample-kit', name: '样本采集耗材（采血管/试剂盒等）', unit: '元/例', qty: 'patients', defaultPrice: 500 },
+      { id: 'lab-consumable', name: '实验室检测耗材', unit: '元/例', qty: 'patients', defaultPrice: 800 },
+      { id: 'equip-calibrate', name: '设备校准/维护费', unit: '元/中心/年', qty: 'centers_years', defaultPrice: 5000 },
+      { id: 'emergency-kit', name: '急救设备配备（除颤仪等）', unit: '元/中心', qty: 'centers', defaultPrice: 15000 },
+      { id: 'office-supply', name: '办公及打印耗材', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 1000 },
+    ]
+  },
+  {
+    id: 'drug', name: '药品费用', color: '#14b8a6',
+    items: [
+      { id: 'inv-drug', name: '试验药品费', unit: '元/例', qty: 'patients', defaultPrice: 0 },
+      { id: 'comp-drug', name: '对照药品费（如适用）', unit: '元/例', qty: 'patients', defaultPrice: 0 },
+      { id: 'conmed', name: '合并/基础用药费', unit: '元/例', qty: 'patients', defaultPrice: 500 },
+      { id: 'drug-packaging', name: '药品包装/盲法标记费', unit: '元/项', qty: 'fixed', defaultPrice: 100000 },
+      { id: 'drug-shipping', name: '药品运输费', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 1500 },
+      { id: 'drug-storage', name: '药品仓储费（GSP库房）', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 3000 },
     ]
   }
 ];
@@ -723,7 +830,7 @@ function recalculate() {
 
   // Update summary panel
   const summaryRows = document.getElementById('summary-rows');
-  const colors = ['#2563eb','#8b5cf6','#f59e0b','#10b981','#ec4899','#06b6d4'];
+  const colors = ['#2563eb','#8b5cf6','#f59e0b','#10b981','#ec4899','#06b6d4','#f97316','#e11d48','#6366f1','#14b8a6'];
   let summaryHTML = '';
   categoryDefs.forEach((cat, i) => {
     summaryHTML += `
@@ -804,7 +911,7 @@ function updateChart(categoryTotals, total) {
 
   const labels = categoryDefs.map(c => c.name);
   const data = categoryDefs.map(c => categoryTotals[c.id]);
-  const bgColors = ['#2563eb','#8b5cf6','#f59e0b','#10b981','#ec4899','#06b6d4'];
+  const bgColors = ['#2563eb','#8b5cf6','#f59e0b','#10b981','#ec4899','#06b6d4','#f97316','#e11d48','#6366f1','#14b8a6'];
 
   window._costChartInstance = new Chart(ctx, {
     type: 'doughnut',
