@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>临床研究费用预估工具</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f5f6fa;
+  --card-bg: #ffffff;
+  --primary: #2563eb;
+  --primary-light: #eff6ff;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --radius: 10px;
+  --category-colors: #2563eb, #8b5cf6, #f59e0b, #10b981, #ec4899, #06b6d4;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+.header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+  color: #fff;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+.header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  padding: 8px 18px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-outline {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+.btn-outline:hover { background: rgba(255,255,255,0.25); }
+.btn-accent { background: #f59e0b; color: #1e293b; }
+.btn-accent:hover { background: #fbbf24; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.main-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .main-container { grid-template-columns: 1fr; }
+}
+.left-panel { display: flex; flex-direction: column; gap: 16px; }
+.right-panel { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 16px; }
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 20px;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.card-header.expanded { border-bottom-color: var(--border); }
+.card-header .icon { margin-right: 8px; font-size: 18px; }
+.card-header .arrow {
+  transition: transform 0.25s;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.card-header.expanded .arrow { transform: rotate(180deg); }
+.card-body { display: none; }
+.card-body.show { display: block; }
+.basic-params {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 16px 20px;
+}
+.param-group { display: flex; flex-direction: column; gap: 4px; }
+.param-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.param-group input, .param-group select {
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  background: #fff;
+}
+.param-group input:focus, .param-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+.param-group input[type="number"] { text-align: right; }
+.cost-table { width: 100%; border-collapse: collapse; }
+.cost-table th {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 16px;
+  text-align: left;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border);
+}
+.cost-table th.right { text-align: right; }
+.cost-table td {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.cost-table td input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: right;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.cost-table td input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+}
+.cost-table td input.qty-input { width: 80px; }
+.cost-table td input.price-input { width: 120px; }
+.cost-table .item-name { font-weight: 500; color: var(--text); }
+.cost-table .item-unit { font-size: 11px; color: var(--text-secondary); }
+.cost-table .item-subtotal {
+  font-weight: 700;
+  color: var(--primary);
+  text-align: right;
+}
+.cost-table .section-total {
+  font-weight: 700;
+  font-size: 14px;
+  text-align: right;
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.category-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; margin-right: 8px; font-size: 14px; }
+.cat-cro { background: #dbeafe; color: #2563eb; }
+.cat-smo { background: #ede9fe; color: #8b5cf6; }
+.cat-hospital { background: #fef3c7; color: #d97706; }
+.cat-investigator { background: #d1fae5; color: #059669; }
+.cat-patient { background: #fce7f3; color: #db2777; }
+.cat-third { background: #cffafe; color: #0891b2; }
+.summary-card .summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.summary-card .summary-row:last-child { border-bottom: none; }
+.summary-card .summary-row.total {
+  background: var(--primary);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  padding: 16px 20px;
+  margin: 0;
+  border-radius: 0;
+}
+.summary-card .summary-label { color: var(--text-secondary); }
+.summary-card .summary-value { font-weight: 700; }
+.summary-card .summary-row.total .summary-label,
+.summary-card .summary-row.total .summary-value { color: #fff; }
+.summary-card .summary-row.subtotal { font-weight: 700; font-size: 15px; background: #f8fafc; }
+.color-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.chart-container { position: relative; width: 100%; height: 320px; padding: 8px; }
+.chart-container canvas { width: 100% !important; height: 100% !important; }
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+.footer-note { text-align: center; padding: 20px; font-size: 12px; color: var(--text-secondary); }
+.category-subtotal {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--primary);
+}
+
+/* Per-patient cost display */
+.per-patient {
+  text-align: center;
+  padding: 12px 20px;
+  background: #f0f9ff;
+  border-top: 1px solid #e0f2fe;
+  font-size: 13px;
+  color: #0369a1;
+  font-weight: 600;
+}
+
+@media print {
+  body { background: #fff; }
+  .header-actions .btn { display: none; }
+  .right-panel { position: static; }
+  .card-body { display: block !important; }
+  .card-header { cursor: default; }
+}
+
+/* Numeric input without spinner */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>临床研究费用预估工具</h1>
+    <div class="subtitle">Clinical Trial Budget Estimator — 申办方预算分析</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-accent" onclick="fillMarketRates()" title="填入国内市场参考均价">填入市场参考价</button>
+    <button class="btn btn-outline" onclick="resetAll()">清空重置</button>
+    <button class="btn btn-outline" onclick="window.print()">打印 / 导出PDF</button>
+  </div>
+</div>
+
+<div class="main-container">
+
+  <!-- Left Panel: Inputs -->
+  <div class="left-panel">
+
+    <!-- Basic Parameters -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span>基础参数设定</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="card-body show">
+        <div class="basic-params">
+          <div class="param-group">
+            <label>试验分期</label>
+            <select id="param-phase">
+              <option value="I">I 期</option>
+              <option value="II">II 期</option>
+              <option value="III" selected>III 期</option>
+              <option value="IV">IV 期</option>
+              <option value="BE">BE 试验</option>
+            </select>
+          </div>
+          <div class="param-group">
+            <label>计划入组例数</label>
+            <input type="number" id="param-patients" value="240" min="1" onchange="recalculate()">
+          </div>
+          <div class="param-group">
+            <label>计划中心数量</label>
+            <input type="number" id="param-centers" value="20" min="1" onchange="recalculate()">
+          </div>
+          <div class="param-group">
+            <label>预计试验周期（月）</label>
+            <input type="number" id="param-months" value="24" min="1" onchange="recalculate()">
+          </div>
+          <div class="param-group">
+            <label>预计每例访视次数</label>
+            <input type="number" id="param-visits" value="8" min="1" onchange="recalculate()">
+          </div>
+          <div class="param-group">
+            <label>筛选失败率（%）</label>
+            <input type="number" id="param-screen-fail" value="20" min="0" max="100" step="1" onchange="recalculate()">
+          </div>
+          <div class="param-group">
+            <label>预计稽查次数</label>
+            <input type="number" id="param-audits" value="2" min="0" onchange="recalculate()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRO -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-cro">C</span>CRO 费用</span>
+        <span><span class="category-subtotal" id="cro-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="cro-items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SMO -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-smo">S</span>SMO 费用</span>
+        <span><span class="category-subtotal" id="smo-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="smo-items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Hospital -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-hospital">医</span>医院费用</span>
+        <span><span class="category-subtotal" id="hospital-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="hospital-items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Investigator -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-investigator">研</span>研究者费用</span>
+        <span><span class="category-subtotal" id="investigator-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="investigator-items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Patient Subsidy -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-patient">患</span>患者补贴</span>
+        <span><span class="category-subtotal" id="patient-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="patient-items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Third Party -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span><span class="category-icon cat-third">三</span>第三方实验室 &amp; 其他</span>
+        <span><span class="category-subtotal" id="third-total-header">¥0</span> <span class="arrow">▼</span></span>
+      </div>
+      <div class="card-body show">
+        <table class="cost-table">
+          <thead>
+            <tr><th>费用项目</th><th class="right">计价单位</th><th class="right">数量</th><th class="right">单价（元）</th><th class="right">金额（元）</th></tr>
+          </thead>
+          <tbody id="third-items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Other fees -->
+    <div class="card">
+      <div class="card-header expanded" onclick="toggleSection(this)">
+        <span>附加费用（税费 / 管理费 / 不可预见费）</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="card-body show">
+        <div class="basic-params">
+          <div class="param-group">
+            <label>增值税率（%）</label>
+            <input type="number" id="param-tax" value="6" min="0" max="100" step="0.5" onchange="recalculate()">
+          </div>
+          <div class="param-group">
+            <label>申办方管理费率（%）</label>
+            <input type="number" id="param-overhead" value="5" min="0" max="100" step="0.5" onchange="recalculate()">
+          </div>
+          <div class="param-group">
+            <label>不可预见费率（%）</label>
+            <input type="number" id="param-contingency" value="10" min="0" max="100" step="0.5" onchange="recalculate()">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Summary -->
+  <div class="right-panel">
+    <div class="card summary-card">
+      <div class="card-header" style="cursor:default; border-bottom:1px solid var(--border);">
+        <span>费用汇总</span>
+        <span style="font-weight:400; font-size:12px; color:var(--text-secondary);">实时计算</span>
+      </div>
+      <div id="summary-rows"></div>
+      <div class="per-patient" id="per-patient-cost">每例成本：¥0</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="cursor:default; border-bottom:1px solid var(--border);">
+        <span>费用构成占比</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="costChart"></canvas>
+      </div>
+      <div id="chart-empty" class="empty-state" style="display:none;">请先填写费用数据</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="cursor:default; border-bottom:1px solid var(--border);">
+        <span>关键指标</span>
+      </div>
+      <div id="key-metrics" style="padding:12px 20px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-note">
+  本工具仅用于预算预估参考，实际费用以合同及实际发生为准 &nbsp;|&nbsp; 基于国内申办方常用分析模型设计
+</div>
+
+<script>
+// ============ Data Model ============
+const categoryDefs = [
+  {
+    id: 'cro', name: 'CRO费用', color: '#2563eb',
+    items: [
+      { id: 'pm', name: '项目管理费', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 20000 },
+      { id: 'cra', name: '临床监查费（CRA）', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 28000 },
+      { id: 'medical-monitor', name: '医学监查费', unit: '元/月', qty: 'months', defaultPrice: 30000 },
+      { id: 'dm', name: '数据管理费（EDC）', unit: '元/例', qty: 'patients', defaultPrice: 1500 },
+      { id: 'stats', name: '统计分析费', unit: '元/项', qty: 'fixed', defaultPrice: 300000 },
+      { id: 'med-writing', name: '医学撰写费（方案/CSR/IB等）', unit: '元/项', qty: 'fixed', defaultPrice: 200000 },
+      { id: 'regulatory', name: '注册事务费', unit: '元/项', qty: 'fixed', defaultPrice: 150000 },
+      { id: 'pv', name: '药物警戒（PV）', unit: '元/月', qty: 'months', defaultPrice: 15000 },
+      { id: 'qa', name: '质量控制/稽查费', unit: '元/次', qty: 'audits', defaultPrice: 50000 },
+      { id: 'training', name: '培训费（研究者会等）', unit: '元/次', qty: 'fixed', defaultPrice: 80000 },
+    ]
+  },
+  {
+    id: 'smo', name: 'SMO费用', color: '#8b5cf6',
+    items: [
+      { id: 'crc', name: 'CRC 服务费', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 15000 },
+      { id: 'recruit', name: '受试者招募服务费', unit: '元/例', qty: 'patients', defaultPrice: 5000 },
+      { id: 'followup', name: '患者随访管理费', unit: '元/例', qty: 'patients', defaultPrice: 2000 },
+    ]
+  },
+  {
+    id: 'hospital', name: '医院费用', color: '#f59e0b',
+    items: [
+      { id: 'institution-fee', name: '机构管理费', unit: '合同金额百分比（%）', qty: 'pct_hospital', defaultPrice: 8, isPct: true },
+      { id: 'ethics-initial', name: '伦理委员会初始审查费', unit: '元/中心', qty: 'centers', defaultPrice: 5000 },
+      { id: 'ethics-amend', name: '伦理修正审查费', unit: '元/中心', qty: 'centers', defaultPrice: 2000 },
+      { id: 'observation', name: '临床试验观察费', unit: '元/例', qty: 'patients', defaultPrice: 5000 },
+      { id: 'drug-mgmt', name: '药品/器械管理费', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 3000 },
+      { id: 'archive', name: '档案管理费', unit: '元/中心/年', qty: 'centers_years', defaultPrice: 5000 },
+      { id: 'annual', name: '机构年费/维护费', unit: '元/中心/年', qty: 'centers_years', defaultPrice: 8000 },
+    ]
+  },
+  {
+    id: 'investigator', name: '研究者费用', color: '#10b981',
+    items: [
+      { id: 'lead-pi', name: '牵头PI研究费', unit: '元/例', qty: 'patients', defaultPrice: 5000 },
+      { id: 'pi', name: '各中心PI研究费', unit: '元/例', qty: 'patients', defaultPrice: 4000 },
+      { id: 'sub-i', name: '协作研究者费（Sub-I）', unit: '元/例', qty: 'patients', defaultPrice: 2000 },
+      { id: 'nurse', name: '研究护士费', unit: '元/例', qty: 'patients', defaultPrice: 1000 },
+      { id: 'lead-pi-mgmt', name: '牵头PI单位管理费', unit: '元/月', qty: 'months', defaultPrice: 10000 },
+    ]
+  },
+  {
+    id: 'patient', name: '患者补贴', color: '#ec4899',
+    items: [
+      { id: 'transport', name: '交通补贴', unit: '元/次', qty: 'patients_visits', defaultPrice: 200 },
+      { id: 'meal', name: '营养/餐补', unit: '元/次', qty: 'patients_visits', defaultPrice: 150 },
+      { id: 'blood', name: '采血补贴', unit: '元/次', qty: 'patients_visits', defaultPrice: 200 },
+      { id: 'work-loss', name: '误工补贴', unit: '元/次', qty: 'patients_visits', defaultPrice: 300 },
+      { id: 'hotel', name: '住宿补贴', unit: '元/晚', qty: 'patients_visits', defaultPrice: 150 },
+      { id: 'insurance-p', name: '受试者保险', unit: '元/例', qty: 'patients', defaultPrice: 200 },
+    ]
+  },
+  {
+    id: 'third', name: '第三方及其他', color: '#06b6d4',
+    items: [
+      { id: 'central-lab', name: '中心实验室检测费', unit: '元/例', qty: 'patients', defaultPrice: 3000 },
+      { id: 'imaging', name: '独立影像评估费', unit: '元/例', qty: 'patients', defaultPrice: 2000 },
+      { id: 'logistics', name: '药品/样本冷链运输', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 2000 },
+      { id: 'warehouse', name: '中心药库管理费', unit: '元/中心/月', qty: 'centers_months', defaultPrice: 4000 },
+      { id: 'trial-insurance', name: '临床试验责任保险', unit: '元/项', qty: 'fixed', defaultPrice: 200000 },
+      { id: 'ip-protection', name: '知识产权/专利费用', unit: '元/项', qty: 'fixed', defaultPrice: 50000 },
+      { id: 'translation', name: '翻译费（方案/ICF/CRF等）', unit: '元/项', qty: 'fixed', defaultPrice: 80000 },
+      { id: 'ivrs', name: 'IWRS/IVRS 系统费', unit: '元/月', qty: 'months', defaultPrice: 10000 },
+    ]
+  }
+];
+
+// ============ State ============
+const state = {};
+
+// ============ Init ============
+function init() {
+  // Initialize item inputs
+  categoryDefs.forEach(cat => {
+    cat.items.forEach(item => {
+      state[item.id] = { price: '', qtyOverride: '' };
+    });
+  });
+
+  // Render all category tables
+  categoryDefs.forEach(cat => {
+    const tbody = document.getElementById(cat.id + '-items');
+    tbody.innerHTML = cat.items.map((item, idx) => {
+      const qtyHint = getQtyHint(item.qty);
+      const isPct = item.isPct || false;
+      return `
+        <tr>
+          <td><span class="item-name">${item.name}</span></td>
+          <td class="item-unit" style="text-align:right;">${item.unit}</td>
+          <td style="text-align:right;">
+            <input type="number" class="qty-input" id="qty-${item.id}" value="${qtyHint}" 
+              onchange="onQtyOverride('${item.id}')" placeholder="数量" min="0" step="${isPct ? '0.1' : '1'}">
+          </td>
+          <td style="text-align:right;">
+            <input type="number" class="price-input" id="price-${item.id}" value="" 
+              onchange="recalculate()" placeholder="单价" min="0" step="0.01">
+          </td>
+          <td class="item-subtotal" id="sub-${item.id}">¥0</td>
+        </tr>`;
+    }).join('');
+
+    // Section total row
+    const totalRow = document.createElement('tr');
+    totalRow.innerHTML = `<td class="section-total" colspan="4">${cat.name} 小计</td><td class="section-total" id="${cat.id}-total">¥0</td>`;
+    tbody.parentElement.appendChild(totalRow);
+  });
+
+  calculateAllQty();
+  recalculate();
+}
+
+function getQtyHint(qtyType) {
+  try {
+    const p = getParams();
+    switch (qtyType) {
+      case 'centers_months': return p.centers * p.months;
+      case 'patients': return p.patients;
+      case 'fixed': return 1;
+      case 'months': return p.months;
+      case 'centers': return p.centers;
+      case 'patients_visits': return p.patients * p.visits;
+      case 'centers_years': return Math.ceil(p.centers * p.months / 12);
+      case 'audits': return p.audits;
+      default: return 0;
+    }
+  } catch(e) { return 0; }
+}
+
+function getParams() {
+  return {
+    patients: parseInt(document.getElementById('param-patients').value) || 0,
+    centers: parseInt(document.getElementById('param-centers').value) || 0,
+    months: parseInt(document.getElementById('param-months').value) || 0,
+    visits: parseInt(document.getElementById('param-visits').value) || 0,
+    screenFail: parseFloat(document.getElementById('param-screen-fail').value) || 0,
+    audits: parseInt(document.getElementById('param-audits').value) || 0,
+    tax: parseFloat(document.getElementById('param-tax').value) || 0,
+    overhead: parseFloat(document.getElementById('param-overhead').value) || 0,
+    contingency: parseFloat(document.getElementById('param-contingency').value) || 0,
+  };
+}
+
+function calculateAllQty() {
+  const p = getParams();
+  categoryDefs.forEach(cat => {
+    cat.items.forEach(item => {
+      const qtyInput = document.getElementById('qty-' + item.id);
+      const override = state[item.id].qtyOverride;
+      if (override !== '') {
+        // User has manually set quantity, keep it
+        return;
+      }
+      let qty;
+      switch (item.qty) {
+        case 'centers_months': qty = p.centers * p.months; break;
+        case 'patients': qty = p.patients; break;
+        case 'fixed': qty = 1; break;
+        case 'months': qty = p.months; break;
+        case 'centers': qty = p.centers; break;
+        case 'patients_visits': qty = p.patients * p.visits; break;
+        case 'centers_years': qty = Math.ceil(p.centers * p.months / 12); break;
+        case 'audits': qty = p.audits; break;
+        case 'pct_hospital': qty = 1; break; // percentage, qty = 1, price = percentage value
+        default: qty = 0;
+      }
+      qtyInput.value = qty;
+    });
+  });
+}
+
+function onQtyOverride(itemId) {
+  const qtyInput = document.getElementById('qty-' + itemId);
+  state[itemId].qtyOverride = qtyInput.value;
+  recalculate();
+}
+
+// ============ Calculation ============
+function recalculate() {
+  const p = getParams();
+
+  // Update all quantities (non-overridden)
+  calculateAllQty();
+
+  // Calculate each item
+  const categoryTotals = {};
+  let directCostTotal = 0;
+
+  categoryDefs.forEach(cat => {
+    let catTotal = 0;
+    cat.items.forEach(item => {
+      const qty = parseFloat(document.getElementById('qty-' + item.id).value) || 0;
+      const price = parseFloat(document.getElementById('price-' + item.id).value) || 0;
+      let subtotal;
+      if (item.isPct) {
+        // Percentage items: price is percentage, subtotal = 0 for now (calculated later)
+        subtotal = 0;
+      } else {
+        subtotal = qty * price;
+      }
+      catTotal += subtotal;
+      document.getElementById('sub-' + item.id).textContent = '¥' + formatMoney(subtotal);
+      state[item.id].subtotal = subtotal;
+    });
+    categoryTotals[cat.id] = catTotal;
+    document.getElementById(cat.id + '-total').textContent = '¥' + formatMoney(catTotal);
+    document.getElementById(cat.id + '-total-header').textContent = '¥' + formatMoney(catTotal);
+    directCostTotal += catTotal;
+  });
+
+  // Handle hospital institution fee (percentage of hospital subtotal excluding itself)
+  const hospitalDef = categoryDefs.find(c => c.id === 'hospital');
+  const instFeeItem = hospitalDef.items.find(i => i.id === 'institution-fee');
+  const instFeePct = parseFloat(document.getElementById('price-' + instFeeItem.id).value) || 0;
+  let hospitalSubExclInst = 0;
+  hospitalDef.items.forEach(item => {
+    if (item.id !== 'institution-fee') {
+      hospitalSubExclInst += (state[item.id].subtotal || 0);
+    }
+  });
+  const instFeeAmount = hospitalSubExclInst * instFeePct / 100;
+  state['institution-fee'].subtotal = instFeeAmount;
+  document.getElementById('sub-institution-fee').textContent = '¥' + formatMoney(instFeeAmount);
+
+  // Recalculate hospital total with institution fee
+  categoryTotals['hospital'] = hospitalSubExclInst + instFeeAmount;
+  document.getElementById('hospital-total').textContent = '¥' + formatMoney(categoryTotals['hospital']);
+  document.getElementById('hospital-total-header').textContent = '¥' + formatMoney(categoryTotals['hospital']);
+
+  // Recalculate direct cost total
+  directCostTotal = 0;
+  categoryDefs.forEach(cat => {
+    directCostTotal += categoryTotals[cat.id];
+  });
+
+  // Additional fees
+  const taxAmount = directCostTotal * p.tax / 100;
+  const overheadAmount = directCostTotal * p.overhead / 100;
+  const contingencyAmount = directCostTotal * p.contingency / 100;
+  const grandTotal = directCostTotal + taxAmount + overheadAmount + contingencyAmount;
+
+  // Update summary panel
+  const summaryRows = document.getElementById('summary-rows');
+  const colors = ['#2563eb','#8b5cf6','#f59e0b','#10b981','#ec4899','#06b6d4'];
+  let summaryHTML = '';
+  categoryDefs.forEach((cat, i) => {
+    summaryHTML += `
+      <div class="summary-row">
+        <span class="summary-label"><span class="color-dot" style="background:${colors[i]};"></span>${cat.name}</span>
+        <span class="summary-value">¥${formatMoney(categoryTotals[cat.id])}</span>
+      </div>`;
+  });
+  summaryHTML += `
+    <div class="summary-row subtotal">
+      <span class="summary-label">直接费用小计</span>
+      <span class="summary-value">¥${formatMoney(directCostTotal)}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">增值税（${p.tax}%）</span>
+      <span class="summary-value">¥${formatMoney(taxAmount)}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">管理费（${p.overhead}%）</span>
+      <span class="summary-value">¥${formatMoney(overheadAmount)}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">不可预见费（${p.contingency}%）</span>
+      <span class="summary-value">¥${formatMoney(contingencyAmount)}</span>
+    </div>
+    <div class="summary-row total">
+      <span class="summary-label">预算总额</span>
+      <span class="summary-value">¥${formatMoney(grandTotal)}</span>
+    </div>`;
+  summaryRows.innerHTML = summaryHTML;
+
+  // Per patient cost
+  const perPatient = p.patients > 0 ? grandTotal / p.patients : 0;
+  document.getElementById('per-patient-cost').textContent = 
+    `每例成本：¥${formatMoney(perPatient)} （入组${p.patients}例）`;
+
+  // Key metrics
+  const screenedPatients = p.patients / (1 - p.screenFail / 100);
+  document.getElementById('key-metrics').innerHTML = `
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;">
+      <span style="color:var(--text-secondary);">预计筛选例数（含${p.screenFail}%失败率）</span>
+      <span style="font-weight:700;">${Math.ceil(screenedPatients)} 例</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;">
+      <span style="color:var(--text-secondary);">平均每中心入组</span>
+      <span style="font-weight:700;">${p.centers > 0 ? (p.patients / p.centers).toFixed(1) : 0} 例</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;">
+      <span style="color:var(--text-secondary);">每例成本</span>
+      <span style="font-weight:700;">¥${formatMoney(perPatient)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;">
+      <span style="color:var(--text-secondary);">每中心月均成本</span>
+      <span style="font-weight:700;">¥${formatMoney(p.centers > 0 && p.months > 0 ? directCostTotal / (p.centers * p.months) : 0)}</span>
+    </div>
+  `;
+
+  // Chart
+  updateChart(categoryTotals, directCostTotal);
+}
+
+function updateChart(categoryTotals, total) {
+  const canvas = document.getElementById('costChart');
+  const empty = document.getElementById('chart-empty');
+  const ctx = canvas.getContext('2d');
+
+  if (total <= 0) {
+    canvas.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  canvas.style.display = 'block';
+  empty.style.display = 'none';
+
+  if (window._costChartInstance) {
+    window._costChartInstance.destroy();
+  }
+
+  const labels = categoryDefs.map(c => c.name);
+  const data = categoryDefs.map(c => categoryTotals[c.id]);
+  const bgColors = ['#2563eb','#8b5cf6','#f59e0b','#10b981','#ec4899','#06b6d4'];
+
+  window._costChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: bgColors,
+        borderColor: '#fff',
+        borderWidth: 2,
+        hoverBorderWidth: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 16,
+            usePointStyle: true,
+            pointStyleWidth: 10,
+            font: { size: 12, family: "-apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" },
+            generateLabels: function(chart) {
+              const data = chart.data;
+              return data.labels.map((label, i) => ({
+                text: label + '  ' + (data.datasets[0].data[i] / total * 100).toFixed(1) + '%',
+                fillStyle: data.datasets[0].backgroundColor[i],
+                strokeStyle: data.datasets[0].backgroundColor[i],
+                pointStyle: 'circle',
+                index: i
+              }));
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const val = ctx.raw;
+              const pct = total > 0 ? (val / total * 100).toFixed(1) : 0;
+              return ' ¥' + formatMoney(val) + ' （' + pct + '%）';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function formatMoney(val) {
+  if (val === 0) return '0';
+  const abs = Math.abs(val);
+  if (abs >= 100000000) return (val / 100000000).toFixed(2) + ' 亿';
+  if (abs >= 10000) return (val / 10000).toFixed(2) + ' 万';
+  return val.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// ============ Actions ============
+function toggleSection(header) {
+  header.classList.toggle('expanded');
+  header.nextElementSibling.classList.toggle('show');
+}
+
+function fillMarketRates() {
+  if (!confirm('将使用国内市场参考均价填充所有单价字段，当前已填写的单价将被覆盖。是否继续？')) return;
+
+  categoryDefs.forEach(cat => {
+    cat.items.forEach(item => {
+      const priceInput = document.getElementById('price-' + item.id);
+      priceInput.value = item.defaultPrice;
+    });
+  });
+
+  recalculate();
+}
+
+function resetAll() {
+  if (!confirm('确定要清空所有数据吗？此操作不可撤销。')) return;
+
+  categoryDefs.forEach(cat => {
+    cat.items.forEach(item => {
+      document.getElementById('price-' + item.id).value = '';
+      document.getElementById('qty-' + item.id).value = getQtyHint(item.qty);
+      state[item.id] = { price: '', qtyOverride: '' };
+    });
+  });
+
+  // Reset basic params to defaults
+  document.getElementById('param-patients').value = 240;
+  document.getElementById('param-centers').value = 20;
+  document.getElementById('param-months').value = 24;
+  document.getElementById('param-visits').value = 8;
+  document.getElementById('param-screen-fail').value = 20;
+  document.getElementById('param-audits').value = 2;
+  document.getElementById('param-tax').value = 6;
+  document.getElementById('param-overhead').value = 5;
+  document.getElementById('param-contingency').value = 10;
+
+  calculateAllQty();
+  recalculate();
+}
+
+// ============ Start ============
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
